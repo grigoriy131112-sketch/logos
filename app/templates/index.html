@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Логос — лента публикаций{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <p class="eyebrow">Блог</p>
+  <h1>Мысли, которые стоит&nbsp;записать</h1>
+  <p class="lede">
+    «Логос» — тихое место, где можно поделиться мыслями, опубликовать текст
+    и услышать отклик читателей.
+  </p>
+  <div class="hero-actions">
+    <a class="btn btn-primary" href="{{ url_for('blog.new_post') }}">Поделиться мыслью</a>
+    <a class="btn btn-ghost" href="{{ url_for('blog.about') }}">Что такое «Логос»</a>
+  </div>
+  <dl class="stats">
+    <div><dt>{{ stats.posts }}</dt><dd>публикаций</dd></div>
+    <div><dt>{{ stats.comments }}</dt><dd>откликов</dd></div>
+    <div><dt>{{ stats.tags }}</dt><dd>тем</dd></div>
+  </dl>
+</section>
+
+<div class="layout">
+  <section class="feed">
+    <div class="feed-head">
+      <h2>
+        {% if active_tag %}Тема: {{ active_tag }}
+        {% elif query %}Поиск: «{{ query }}»
+        {% else %}Свежие публикации{% endif %}
+      </h2>
+      <form class="search" action="{{ url_for('blog.index') }}" method="get">
+        <input type="search" name="q" value="{{ query }}" placeholder="Найти в публикациях…" aria-label="Поиск">
+        <button class="btn btn-ghost" type="submit">Искать</button>
+      </form>
+    </div>
+
+    {% if posts %}
+      <ul class="post-list">
+        {% for post in posts %}
+          <li class="post-card">
+            <a class="post-link" href="{{ url_for('blog.post', post_id=post['id']) }}">
+              <h3>{{ post['title'] }}</h3>
+            </a>
+            {% if post['summary'] %}
+              <p class="post-summary">{{ post['summary'] }}</p>
+            {% endif %}
+            <div class="post-meta">
+              <span class="author">{{ post['author'] }}</span>
+              <span class="dot">·</span>
+              <time datetime="{{ post['created_at'] }}">{{ post['created_at'] | ru_date }}</time>
+              <span class="dot">·</span>
+              <span>{{ post['tags'] | tags_list | length }} тем(ы)</span>
+            </div>
+            {% if post['tags'] | tags_list %}
+              <div class="tag-row">
+                {% for tag in post['tags'] | tags_list %}
+                  <a class="tag" href="{{ url_for('blog.index', tag=tag) }}">#{{ tag }}</a>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="empty">
+        <p>Здесь пока пусто. Станьте первым, кто поделится мыслью.</p>
+        <a class="btn btn-primary" href="{{ url_for('blog.new_post') }}">Написать публикацию</a>
+      </div>
+    {% endif %}
+  </section>
+
+  <aside class="sidebar">
+    <div class="panel">
+      <h3>Темы</h3>
+      {% if tags %}
+        <div class="tag-cloud">
+          {% for tag, count in tags %}
+            <a class="tag" href="{{ url_for('blog.index', tag=tag) }}">#{{ tag }} <span class="count">{{ count }}</span></a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="muted">Темы появятся вместе с публикациями.</p>
+      {% endif %}
+    </div>
+    <div class="panel quote">
+      <h3>О чём писать</h3>
+      <ul class="ideas">
+        <li>мысль, которая не даёт покоя;</li>
+        <li>книга или фильм, изменившие взгляд;</li>
+        <li>наблюдение из обычного дня;</li>
+        <li>вопрос, на который нет ответа.</li>
+      </ul>
+    </div>
+  </aside>
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+# Окружение и артефакты
+instance/
+*.sqlite3
+server.log
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Редакторы и ОС
+.idea/
+.vscode/
+.DS_Store

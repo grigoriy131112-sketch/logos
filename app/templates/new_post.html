@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Новая публикация — Логос{% endblock %}
+
+{% block content %}
+<section class="editor">
+  <a class="back" href="{{ url_for('blog.index') }}">← Все публикации</a>
+  <h1>Поделиться мыслью</h1>
+  <p class="lede">Напишите текст — «Логос» поддержит разметку Markdown.</p>
+
+  <form method="post" class="editor-form">
+    <label>
+      <span>Заголовок</span>
+      <input type="text" name="title" value="{{ form.title }}" required
+             minlength="3" maxlength="160" placeholder="О чём эта мысль?">
+    </label>
+
+    <div class="row">
+      <label>
+        <span>Автор</span>
+        <input type="text" name="author" value="{{ form.author }}" maxlength="60" placeholder="Ваше имя">
+      </label>
+      <label>
+        <span>Темы <em class="muted">(через запятую)</em></span>
+        <input type="text" name="tags" value="{{ form.tags }}" placeholder="философия, книги">
+      </label>
+    </div>
+
+    <label>
+      <span>Краткое описание <em class="muted">(необязательно)</em></span>
+      <input type="text" name="summary" value="{{ form.summary }}" maxlength="220"
+             placeholder="Одно предложение для ленты">
+    </label>
+
+    <label>
+      <span>Текст публикации</span>
+      <textarea name="body" rows="14" required minlength="10"
+                placeholder="Пишите свободно. **Жирный**, *курсив*, # заголовки — всё работает.">{{ form.body }}</textarea>
+    </label>
+
+    <div class="editor-actions">
+      <button class="btn btn-primary" type="submit">Опубликовать</button>
+      <a class="btn btn-ghost" href="{{ url_for('blog.index') }}">Отмена</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

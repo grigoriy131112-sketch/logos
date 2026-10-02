@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}О блоге — Логос{% endblock %}
+
+{% block content %}
+<section class="about">
+  <p class="eyebrow">О блоге</p>
+  <h1>Почему «Логос»</h1>
+  <div class="prose">
+    <p>
+      <strong>Логос</strong> — древнегреческое слово, в котором слиты сразу
+      «слово», «мысль» и «смысл». Именно поэтому блог получил это имя с самого
+      начала идеи: его задача — дать мыслям форму и поделиться ими.
+    </p>
+    <h2>Что здесь можно делать</h2>
+    <ul>
+      <li><strong>Публиковать</strong> — писать тексты с разметкой Markdown.</li>
+      <li><strong>Собирать темы</strong> — помечать публикации тегами.</li>
+      <li><strong>Получать отклик</strong> — читатели оставляют комментарии.</li>
+      <li><strong>Искать</strong> — по словам в заголовке и тексте.</li>
+    </ul>
+    <h2>Принципы</h2>
+    <blockquote>Слово. Смысл. Отклик.</blockquote>
+    <p>
+      Здесь нет гонки за лайками: важна ясность мысли и уважительный разговор.
+    </p>
+  </div>
+  <div class="hero-actions">
+    <a class="btn btn-primary" href="{{ url_for('blog.new_post') }}">Написать публикацию</a>
+    <a class="btn btn-ghost" href="{{ url_for('blog.index') }}">Перейти в ленту</a>
+  </div>
+</section>
+{% endblock %}
