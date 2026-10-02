@@ -230,11 +230,30 @@ for name in author_names:
                     f"{HOST}{PREFIX}/author/{author_slugs[name]}/"))
 print(f"  author/ — {len(author_names)}")
 
-for page in ("authors", "about", "new", "workshop"):
+for page in ("authors", "about", "workshop"):
     write(f"{page}/index.html",
           fix_links(strip_server_forms(render(f"/{page}")), post_urls,
                     f"{HOST}{PREFIX}/{page}/"))
-print("  authors/, about/, new/, workshop/")
+print("  authors/, about/, workshop/")
+
+# Страница записи живёт в мастерской. В статике /new раньше показывал
+# только витрину формы — тупик, если открыть его напрямую. Вместо этого
+# сразу перенаправляем: писать можно только там, где есть хранилище.
+write("new/index.html", f"""<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Написать мысль — Логос</title>
+<meta http-equiv="refresh" content="0; url={PREFIX}/workshop/#new">
+<script>location.replace("{PREFIX}/workshop/#new");</script>
+</head>
+<body>
+<p>Форма записи живёт в мастерской.
+<a href="{PREFIX}/workshop/#new">Перейти к написанию мысли</a>.</p>
+</body>
+</html>
+""")
+print("  new/ — перенаправление в мастерскую")
 
 write("404.html",
       fix_links(strip_server_forms(render("/net-takoj-stranicy", allow_404=True)),
