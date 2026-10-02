@@ -4,6 +4,7 @@ import os
 from datetime import datetime, timezone
 
 from flask import Flask, render_template
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import db
 
@@ -16,6 +17,10 @@ def create_app(test_config=None):
     )
     if test_config:
         app.config.update(test_config)
+
+    # Сайт работает за прокси платформы: без этого Flask считает схему
+    # http, и ссылки в RSS уходили бы по http вместо https.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     os.makedirs(app.instance_path, exist_ok=True)
 

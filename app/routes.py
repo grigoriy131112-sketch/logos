@@ -1,5 +1,6 @@
 """Маршруты блога «Логос»."""
 
+from datetime import datetime, timezone
 from xml.sax.saxutils import escape
 
 import markdown
@@ -175,6 +176,17 @@ def api_posts():
     ])
 
 
+def _rfc822(value):
+    """ISO-дата → формат RFC 822, которого требует RSS 2.0."""
+    try:
+        dt = datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        return ""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.strftime("%a, %d %b %Y %H:%M:%S %z")
+
+
 @bp.route("/feed.xml")
 def rss():
     base = request.url_root.rstrip("/")
@@ -186,18 +198,36 @@ def rss():
             "<item>"
             f"<title>{escape(p['title'])}</title>"
             f"<link>{escape(link)}</link>"
-            f"<guid>{escape(link)}</guid>"
-            f"<pubDate>{escape(p['created_at'])}</pubDate>"
+            f"<guid isPermaLink=\"true\">{escape(link)}</guid>"
+            f"<pubDate>{_rfc822(p['created_at'])}</pubDate>"
+            f"<author>{escape(p['author'])}</author>"
             f"<description>{escape(p['summary'] or p['body'][:200])}</description>"
             "</item>"
         )
+    # stylesheet: в браузере лента выглядит как страница,
+    # RSS-читалки получают обычный XML.
     xml = (
         '<?xml version="1.0" encoding="UTF-8"?>'
-        '<rss version="2.0"><channel>'
-        f"<title>Логос</title>"
+        '<?xml-stylesheet type="text/xsl" href="/feed.xsl"?>'
+        '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">'
+        "<channel>"
+        "<title>Логос</title>"
         f"<link>{escape(base)}</link>"
+        f'<atom:link href="{escape(base)}/feed.xml" rel="self" type="application/rss+xml"/>'
         "<description>Блог, чтобы делиться мыслями и публикациями.</description>"
+        "<language>ru</language>"
         + "".join(items) +
         "</channel></rss>"
     )
-    return Response(xml, mimetype="application/rss+xml")
+    # Отдаём ленту как application/xml, а не application/rss+xml:
+    # Chrome не применяет XSLT к типу rss+xml и показывает сырой XML.
+    # RSS-читалки принимают application/xml без проблем.
+    return Response(xml, mimetype="application/xml")
+
+
+@bp.route("/feed.xsl")
+def rss_stylesheet():
+    return Response(
+        render_template("feed.xsl"),
+        mimetype="application/xml",
+    )

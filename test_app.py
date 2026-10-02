@@ -68,7 +68,14 @@ def run():
     check("Случайная мысль", client.get("/random").status_code == 302)
 
     r = client.get("/feed.xml")
-    check("RSS-лента", r.status_code == 200 and r.mimetype == "application/rss+xml")
+    check("RSS-лента", r.status_code == 200 and "application/xml" in r.mimetype)
+    body = r.get_data(as_text=True)
+    # RFC 822: "Wed, 02 Oct 2026 11:33:20 +0000"
+    check("RSS: дата по стандарту RFC 822",
+          bool(re.search(r"<pubDate>[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} [+-]\d{4}</pubDate>", body)))
+    check("RSS: автор в ленте", "<author>Тест</author>" in body)
+    check("RSS: ссылка на стиль", 'xml-stylesheet' in body)
+    check("Стиль RSS отдаётся", client.get("/feed.xsl").status_code == 200)
 
     check("Страница «О блоге»", client.get("/about").status_code == 200)
     check("404 для несуществующего поста", client.get("/post/9999").status_code == 404)
