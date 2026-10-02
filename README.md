@@ -124,7 +124,11 @@ pip install -r requirements.txt
 python tools/build_static.py
 ```
 
-Результат — папка `docs/`, её отдаёт Pages (ветка `main`, каталог `/docs`).
+Результат — папка `docs/`. Публикует её workflow
+`.github/workflows/pages.yml`: при каждом пуше в `main` он прогоняет
+`test_app.py`, пересобирает сайт и обновляет ветку `gh-pages`, откуда
+Pages и отдаёт файлы. То есть после правки `data/content.json` достаточно
+запушить `main` — сайт обновится сам.
 
 ## Заметка о подкаталоге
 
