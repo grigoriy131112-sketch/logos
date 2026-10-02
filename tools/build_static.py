@@ -20,6 +20,7 @@ import sqlite3
 import sys
 import tempfile
 from urllib.parse import quote, unquote
+from xml.sax.saxutils import escape
 
 from bs4 import BeautifulSoup
 
@@ -149,6 +150,49 @@ def fix_links(html, random_posts, page_url):
         f'  <script src="{PREFIX}/static/js/static.js"></script>\n</body>')
 
 
+def canonical_urls(xml):
+    """Дописать завершающий слеш в ссылках на страницы.
+
+    Приложение собирает адреса без слеша (`/logos/post/1`), а Pages отдаёт
+    такую страницу редиректом 301 на `/logos/post/1/`. В браузере это
+    незаметно, но в ленте и карте сайта каждая ссылка — лишний переход,
+    а поисковики видят два адреса одной страницы. guid ленты тоже должен
+    указывать на канонический адрес.
+    """
+    def canonical(url):
+        if re.match(rf"^{re.escape(HOST)}{re.escape(PREFIX)}$", url):
+            return url + "/"
+        if re.match(
+            rf"^{re.escape(HOST)}{re.escape(PREFIX)}"
+            r"/(post/\d+|about|authors|workshop|tag/[^/]+|author/[^/]+)$", url
+        ):
+            return url + "/"
+        return url
+
+    xml = re.sub(r"<link>([^<]+)</link>", lambda m: f"<link>{canonical(m.group(1))}</link>", xml)
+    return re.sub(r"(<guid[^>]*>)([^<]+)(</guid>)",
+                  lambda m: m.group(1) + canonical(m.group(2)) + m.group(3), xml)
+
+
+def build_sitemap():
+    """Карта сайта: все публичные страницы, адреса со слешем на конце."""
+    urls = [f"{HOST}{PREFIX}/", f"{HOST}{PREFIX}/about/",
+            f"{HOST}{PREFIX}/authors/", f"{HOST}{PREFIX}/workshop/"]
+    for post in posts:
+        urls.append(f"{HOST}{PREFIX}/post/{post['id']}/")
+    for tag in tag_names:
+        urls.append(f"{HOST}{PREFIX}/tag/{tag_slugs[tag]}/")
+    for author in author_names:
+        urls.append(f"{HOST}{PREFIX}/author/{author_slugs[author]}/")
+    body = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        + "".join(f"<url><loc>{escape(u)}</loc></url>" for u in urls)
+        + "</urlset>"
+    )
+    return body
+
+
 def strip_server_forms(html):
     """Убрать формы, которым нужен сервер, и оставить понятный след.
 
@@ -261,8 +305,9 @@ write("404.html",
 print("  404.html")
 
 print("=== служебные файлы ===")
-for name in ("feed.xml", "feed.xsl", "robots.txt", "sitemap.xml"):
-    write(name, render("/" + name))
+for name in ("feed.xml", "feed.xsl", "robots.txt"):
+    write(name, canonical_urls(render("/" + name)))
+write("sitemap.xml", build_sitemap())
 print("  feed.xml, feed.xsl, robots.txt, sitemap.xml")
 
 shutil.copytree(os.path.join(ROOT, "app", "static"), os.path.join(DOCS, "static"))

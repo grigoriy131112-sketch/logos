@@ -376,13 +376,19 @@ def robots():
 
 @bp.route("/sitemap.xml")
 def sitemap():
+    """Карта сайта: все публичные страницы, без служебных."""
     urls = [
         url_for("blog.index", _external=True),
         url_for("blog.about", _external=True),
         url_for("blog.authors", _external=True),
+        url_for("blog.workshop", _external=True),
     ]
     for p in db.list_posts():
         urls.append(url_for("blog.post", post_id=p["id"], _external=True))
+    for name, _count in db.all_tags():
+        urls.append(url_for("blog.index", tag=name, _external=True))
+    for name, _count in db.list_authors():
+        urls.append(url_for("blog.author", name=name, _external=True))
     body = (
         '<?xml version="1.0" encoding="UTF-8"?>'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'

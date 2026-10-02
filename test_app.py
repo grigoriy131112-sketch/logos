@@ -78,6 +78,15 @@ def run():
     check("Стиль RSS отдаётся", client.get("/feed.xsl").status_code == 200)
 
     check("Страница «О блоге»", client.get("/about").status_code == 200)
+
+    r = client.get("/sitemap.xml")
+    check("Карта сайта отдаётся", r.status_code == 200 and "xml" in r.mimetype)
+    smap = r.get_data(as_text=True)
+    check("Карта сайта: мастерская включена", "/workshop" in smap)
+    check("Карта сайта: теги включены", "?tag=" in smap)
+    check("Карта сайта: авторы включены", "/author/" in smap)
+    check("Карта сайта: служебная страница записи не попала",
+          "/new" not in smap)
     check("404 для несуществующего поста", client.get("/post/9999").status_code == 404)
 
     # Мастерская: профиль и свои мысли хранятся в браузере, серверу здесь
