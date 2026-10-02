@@ -1,17 +1,15 @@
 name: Публикация на GitHub Pages
 
-# Сайт «Логос» — статическая сборка в docs/. Сборку собирает tools/build_static.py
-# из data/content.json, поэтому перед публикацией она пересобирается: иначе
-# docs/ разошлась бы с контентом.
+# Сайт «Логос» — статическая сборка. Источник Pages — ветка gh-pages,
+# поэтому workflow пересобирает сайт из data/content.json и публикует
+# результат туда. Так контент и сайт не расходятся.
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
@@ -36,22 +34,16 @@ jobs:
       - name: Пересобрать статическую версию
         run: python tools/build_static.py
 
-      - name: Подготовить Pages
-        uses: actions/configure-pages@v5
-        with:
-          # Включит Pages, если он ещё не включён в настройках репозитория.
-          enablement: true
-
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Опубликовать в ветку gh-pages
+        run: |
+          cd docs
+          git init -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Пересборка сайта из ${GITHUB_SHA::7}"
+          git push -q -f \
+            "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
