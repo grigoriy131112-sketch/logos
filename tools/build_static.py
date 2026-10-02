@@ -125,7 +125,8 @@ def fix_links(html, random_posts, page_url):
         if href == f"{PREFIX}/random":
             return (f'href="#random" id="random-link"'
                     f' data-posts="{",".join(random_posts)}"')
-        if href in (f"{PREFIX}/authors", f"{PREFIX}/about", f"{PREFIX}/new"):
+        if href in (f"{PREFIX}/authors", f"{PREFIX}/about", f"{PREFIX}/new",
+                    f"{PREFIX}/workshop"):
             return f'href="{href}/"'
         return match.group(0)
 
@@ -175,6 +176,17 @@ def strip_server_forms(html):
         box.append(para)
         editor.replace_with(box)
 
+    # Мастерская работает и в статике: мысли хранятся в браузере. Убираем
+    # только публикацию в общую ленту — для неё нужен сервер.
+    workshop = soup.select_one("#workshop")
+    if workshop:
+        workshop["data-can-publish"] = "false"
+
+    # Правка и удаление публикаций — серверные действия; в статике таких
+    # страниц нет, поэтому ссылку убираем, а не оставляем битой.
+    for link in soup.select('.share-row a[href$="/edit"]'):
+        link.decompose()
+
     return str(soup)
 
 
@@ -212,11 +224,11 @@ for name in author_names:
                     f"{HOST}{PREFIX}/author/{author_slugs[name]}/"))
 print(f"  author/ — {len(author_names)}")
 
-for page in ("authors", "about", "new"):
+for page in ("authors", "about", "new", "workshop"):
     write(f"{page}/index.html",
           fix_links(strip_server_forms(render(f"/{page}")), post_urls,
                     f"{HOST}{PREFIX}/{page}/"))
-print("  authors/, about/, new/")
+print("  authors/, about/, new/, workshop/")
 
 write("404.html",
       fix_links(strip_server_forms(render("/net-takoj-stranicy", allow_404=True)),
@@ -254,6 +266,8 @@ for root_dir, _dirs, files in os.walk(DOCS):
                 problems.append(f"{rel}: ссылка на несуществующий пост {pid}")
         if "?tag=" in text:
             problems.append(f"{rel}: осталась ссылка с параметром ?tag=")
+        if re.search(rf'href="{PREFIX}/post/\d+/(edit|delete)"', text):
+            problems.append(f"{rel}: осталась серверная ссылка правки/удаления")
         if re.search(r'<form[^>]*action="[^"]*(comment|react)', text):
             problems.append(f"{rel}: осталась серверная форма отклика")
 

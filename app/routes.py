@@ -65,6 +65,26 @@ def render_markdown(text):
     )
 
 
+def _validate_post(title, body, author, summary, tags):
+    """Общие правила для создания и правки публикации."""
+    errors = []
+    if len(title) < 3:
+        errors.append("Заголовок должен содержать минимум 3 символа.")
+    if len(title) > MAX_TITLE:
+        errors.append(f"Заголовок слишком длинный — максимум {MAX_TITLE} символов.")
+    if len(body) < 10:
+        errors.append("Текст публикации слишком короткий — напишите хотя бы пару предложений.")
+    if len(body) > MAX_BODY:
+        errors.append(f"Текст слишком длинный — максимум {MAX_BODY} символов.")
+    if len(author) > MAX_AUTHOR:
+        errors.append(f"Имя автора слишком длинное — максимум {MAX_AUTHOR} символов.")
+    if len(summary) > MAX_SUMMARY:
+        errors.append(f"Описание слишком длинное — максимум {MAX_SUMMARY} символов.")
+    if len(tags) > MAX_TAGS:
+        errors.append(f"Список тем слишком длинный — максимум {MAX_TAGS} символов.")
+    return errors
+
+
 def _context(**extra):
     tags = db.all_tags()
     data = {"tags": tags, "stats": db.stats(tag_count=len(tags))}
@@ -112,22 +132,7 @@ def new_post():
         tags = request.form.get("tags", "")
         summary = request.form.get("summary", "").strip()
 
-        errors = []
-        if len(title) < 3:
-            errors.append("Заголовок должен содержать минимум 3 символа.")
-        if len(title) > MAX_TITLE:
-            errors.append(f"Заголовок слишком длинный — максимум {MAX_TITLE} символов.")
-        if len(body) < 10:
-            errors.append("Текст публикации слишком короткий — напишите хотя бы пару предложений.")
-        if len(body) > MAX_BODY:
-            errors.append(f"Текст слишком длинный — максимум {MAX_BODY} символов.")
-        if len(author) > MAX_AUTHOR:
-            errors.append(f"Имя автора слишком длинное — максимум {MAX_AUTHOR} символов.")
-        if len(summary) > MAX_SUMMARY:
-            errors.append(f"Описание слишком длинное — максимум {MAX_SUMMARY} символов.")
-        if len(tags) > MAX_TAGS:
-            errors.append(f"Список тем слишком длинный — максимум {MAX_TAGS} символов.")
-
+        errors = _validate_post(title, body, author, summary, tags)
         if errors:
             for message in errors:
                 flash(message, "error")
@@ -147,6 +152,53 @@ def new_post():
         form={"title": "", "body": "", "author": "", "tags": "", "summary": ""},
         **_context(),
     )
+
+
+@bp.route("/post/<int:post_id>/edit", methods=("GET", "POST"))
+def edit_post(post_id):
+    item = db.get_post(post_id)
+    if item is None:
+        abort(404)
+
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        body = request.form.get("body", "").strip()
+        author = request.form.get("author", "").strip() or item["author"]
+        tags = request.form.get("tags", "")
+        summary = request.form.get("summary", "").strip()
+
+        errors = _validate_post(title, body, author, summary, tags)
+        if errors:
+            for message in errors:
+                flash(message, "error")
+            return render_template(
+                "edit_post.html",
+                post=item,
+                form={"title": title, "body": body, "author": author,
+                      "tags": tags, "summary": summary},
+                **_context(),
+            )
+
+        db.update_post(post_id, title, body, author, tags, summary)
+        flash("Изменения сохранены.", "success")
+        return redirect(url_for("blog.post", post_id=post_id))
+
+    return render_template(
+        "edit_post.html",
+        post=item,
+        form={"title": item["title"], "body": item["body"], "author": item["author"],
+              "tags": item["tags"], "summary": item["summary"]},
+        **_context(),
+    )
+
+
+@bp.route("/post/<int:post_id>/delete", methods=("POST",))
+def delete_post(post_id):
+    if db.get_post(post_id) is None:
+        abort(404)
+    db.delete_post(post_id)
+    flash("Публикация удалена.", "success")
+    return redirect(url_for("blog.index"))
 
 
 @bp.route("/post/<int:post_id>/comment", methods=("POST",))
@@ -217,6 +269,12 @@ def authors():
 @bp.route("/about")
 def about():
     return render_template("about.html", **_context())
+
+
+@bp.route("/workshop")
+def workshop():
+    """Личная мастерская: профиль и свои мысли в браузере, без регистрации."""
+    return render_template("workshop.html", can_publish=True, **_context())
 
 
 @bp.route("/api/posts")

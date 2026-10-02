@@ -64,6 +64,13 @@
     resize();
   }
 
+  /* ---------- Подтверждение удаления ---------- */
+  document.querySelectorAll("form[data-confirm]").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      if (!window.confirm(form.dataset.confirm)) event.preventDefault();
+    });
+  });
+
   /* ---------- Скрыть сообщения об успехе ---------- */
   document.querySelectorAll(".flash-success").forEach((el) => {
     setTimeout(() => {

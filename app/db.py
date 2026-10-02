@@ -140,6 +140,39 @@ def get_post(post_id):
     ).fetchone()
 
 
+def update_post(post_id, title, body, author="Гость", tags="", summary=""):
+    db = get_db()
+    db.execute(
+        "UPDATE posts SET title = ?, author = ?, tags = ?, summary = ?, body = ?,"
+        " updated_at = ? WHERE id = ?",
+        (title.strip(), author.strip() or "Гость", tags_to_string(tags),
+         summary.strip(), body.strip(), now_iso(), post_id),
+    )
+    db.commit()
+
+
+def delete_post(post_id):
+    """Удалить публикацию вместе с откликами и реакциями."""
+    db = get_db()
+    db.execute("DELETE FROM comments WHERE post_id = ?", (post_id,))
+    db.execute("DELETE FROM reactions WHERE post_id = ?", (post_id,))
+    db.execute("DELETE FROM posts WHERE id = ?", (post_id,))
+    db.commit()
+
+
+def list_posts_by_ids(ids):
+    """Публикации по списку id — так показываются «свои» записи."""
+    ids = [int(i) for i in ids]
+    if not ids:
+        return []
+    marks = ", ".join("?" for _ in ids)
+    return get_db().execute(
+        f"SELECT * FROM posts WHERE id IN ({marks})"
+        " ORDER BY created_at DESC, id DESC",
+        ids,
+    ).fetchall()
+
+
 def random_post():
     return get_db().execute(
         "SELECT * FROM posts ORDER BY RANDOM() LIMIT 1"

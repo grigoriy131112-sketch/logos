@@ -80,6 +80,39 @@ def run():
     check("Страница «О блоге»", client.get("/about").status_code == 200)
     check("404 для несуществующего поста", client.get("/post/9999").status_code == 404)
 
+    # Мастерская: профиль и свои мысли хранятся в браузере, серверу здесь
+    # нужна только страница с формой.
+    r = client.get("/workshop")
+    check("Мастерская открывается",
+          r.status_code == 200 and b'id="workshop"' in r.data)
+    check("Мастерская: публикация доступна",
+          b'data-can-publish="true"' in r.data)
+
+    # Правка публикации.
+    r = client.post(f"/post/{post_id}/edit", data={
+        "title": "Проверочная публикация (правка)",
+        "body": "Обновлённый текст проверки с **разметкой**.",
+        "author": "Тест",
+        "tags": "тест",
+        "summary": "Коротко о правке",
+    }, follow_redirects=True)
+    check("Правка публикации",
+          r.status_code == 200 and "Проверочная публикация (правка)".encode() in r.data)
+    check("Правка: старая версия исчезла",
+          "Обновлённый текст".encode() in r.data)
+
+    r = client.get(f"/post/{post_id}/edit")
+    check("Форма правки заполнена",
+          r.status_code == 200 and "Проверочная публикация (правка)".encode() in r.data)
+
+    # Удаление публикации вместе с откликами и реакциями.
+    r = client.post(f"/post/{post_id}/delete", follow_redirects=True)
+    check("Удаление публикации",
+          r.status_code == 200 and "Проверочная публикация".encode() not in r.data)
+    check("После удаления публикация не найдена",
+          client.get(f"/post/{post_id}").status_code == 404)
+    check("После удаления API пуст", client.get("/api/posts").get_json() == [])
+
     ok = True
     for name, passed in checks:
         print(("  ✓ " if passed else "  ✗ ") + name)
