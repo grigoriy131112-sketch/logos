@@ -10,7 +10,7 @@
     и услышать отклик читателей.
   </p>
   <div class="hero-actions">
-    <a class="btn btn-primary" href="{{ url_for('blog.new_post') }}">Поделиться мыслью</a>
+    <a class="btn btn-primary" href="{{ url_for('blog.workshop') }}#new">Поделиться мыслью</a>
     <a class="btn btn-ghost" href="{{ url_for('blog.random_thought') }}">🎲 Случайная мысль</a>
     <a class="btn btn-ghost" href="{{ url_for('blog.about') }}">Что такое «Логос»</a>
   </div>
@@ -76,7 +76,7 @@
         {% else %}
           <p>Здесь пока пусто. Станьте первым, кто поделится мыслью.</p>
         {% endif %}
-        <a class="btn btn-primary" href="{{ url_for('blog.new_post') }}">Написать публикацию</a>
+        <a class="btn btn-primary" href="{{ url_for('blog.workshop') }}#new">Написать публикацию</a>
       </div>
     {% endif %}
   </section>

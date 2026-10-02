@@ -125,9 +125,15 @@ def fix_links(html, random_posts, page_url):
         if href == f"{PREFIX}/random":
             return (f'href="#random" id="random-link"'
                     f' data-posts="{",".join(random_posts)}"')
-        if href in (f"{PREFIX}/authors", f"{PREFIX}/about", f"{PREFIX}/new",
+        # Кнопка «Написать» ведёт в мастерскую с якорем — якорь сохраняем.
+        anchor = ""
+        base = href
+        if "#" in href:
+            base, anchor = href.split("#", 1)
+            anchor = "#" + anchor
+        if base in (f"{PREFIX}/authors", f"{PREFIX}/about", f"{PREFIX}/new",
                     f"{PREFIX}/workshop"):
-            return f'href="{href}/"'
+            return f'href="{base}/{anchor}"'
         return match.group(0)
 
     html = re.sub(r'href="([^"]*)"', repl, html)

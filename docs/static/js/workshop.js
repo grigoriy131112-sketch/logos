@@ -186,7 +186,6 @@
       els.count.textContent = "";
       return;
     }
-
     const nick = state.profile.nick;
     els.nick.textContent = nick;
     els.about.textContent = state.profile.about || "Без описания";
@@ -327,6 +326,10 @@
     editingId = null;
     els.editor.hidden = true;
     els.form.reset();
+    // Убираем якорь, иначе повторное нажатие «Написать» не откроет форму.
+    if (requestedNew()) {
+      history.replaceState(null, "", location.pathname + location.search);
+    }
   }
 
   els.newBtn.addEventListener("click", () => openEditor(null));
@@ -380,6 +383,7 @@
     };
     save();
     render();
+    openIfRequested();
   });
 
   els.profileEdit.addEventListener("click", () => {
@@ -463,5 +467,26 @@
     form.submit();
   }
 
+  /* ---------- Переход по «Написать» ---------- */
+
+  // Кнопка «Написать» ведёт сюда с якорем #new: открываем сразу форму,
+  // а если профиля ещё нет — помним об этом и откроем после его создания.
+  function requestedNew() {
+    return location.hash === "#new" || location.hash === "#ws-editor";
+  }
+
+  function openIfRequested() {
+    if (!requestedNew()) return;
+    if (state.profile && state.profile.nick) {
+      openEditor(null);
+    } else {
+      els.setup.scrollIntoView({ behavior: "smooth", block: "start" });
+      els.setupForm.nick.focus();
+    }
+  }
+
+  window.addEventListener("hashchange", openIfRequested);
+
   render();
+  openIfRequested();
 })();
