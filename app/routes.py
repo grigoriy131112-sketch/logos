@@ -4,25 +4,70 @@ from datetime import datetime, timezone
 from xml.sax.saxutils import escape
 
 import markdown
+import nh3
 from flask import (
-    Blueprint, Response, abort, flash, jsonify, redirect, render_template,
-    request, url_for,
+    Blueprint,
+    Response,
+    abort,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
 )
 
 from . import db
 
 bp = Blueprint("blog", __name__)
 
-MD = markdown.Markdown(extensions=["extra", "sane_lists", "nl2br"])
+MD_EXTENSIONS = ["extra", "sane_lists", "nl2br"]
+
+# Белый список для HTML, который получается из Markdown. Всё остальное
+# вырезается: посетитель может опубликовать текст, а он показывается
+# другим людям, поэтому сырой HTML и `javascript:` в ссылках недопустимы.
+ALLOWED_TAGS = {
+    "p", "br", "hr", "em", "strong", "del", "blockquote", "code", "pre",
+    "h1", "h2", "h3", "h4", "h5", "h6",
+    "ul", "ol", "li", "a", "img", "table", "thead", "tbody", "tr", "th", "td",
+}
+ALLOWED_ATTRS = {
+    "a": {"href", "title"},
+    "img": {"src", "alt", "title"},
+    "th": {"align"},
+    "td": {"align"},
+}
+ALLOWED_SCHEMES = {"http", "https", "mailto", "tel"}
+
+# Пределы длины: атрибуты maxlength в форме проверяются только браузером,
+# поэтому то же самое нужно проверять на сервере.
+MAX_TITLE = 160
+MAX_SUMMARY = 220
+MAX_AUTHOR = 60
+MAX_TAGS = 200
+MAX_BODY = 20000
+MAX_COMMENT = 2000
+MAX_REACTIONS_IN_SESSION = 200
 
 
 def render_markdown(text):
-    MD.reset()
-    return MD.convert(text or "")
+    # Свой объект Markdown на каждый вызов: markdown.Markdown хранит
+    # состояние между convert(), а сервер обрабатывает запросы в потоках.
+    md = markdown.Markdown(extensions=MD_EXTENSIONS)
+    html = md.convert(text or "")
+    return nh3.clean(
+        html,
+        tags=ALLOWED_TAGS,
+        attributes=ALLOWED_ATTRS,
+        url_schemes=ALLOWED_SCHEMES,
+        link_rel="noopener noreferrer",
+    )
 
 
 def _context(**extra):
-    data = {"tags": db.all_tags(), "stats": db.stats()}
+    tags = db.all_tags()
+    data = {"tags": tags, "stats": db.stats(tag_count=len(tags))}
     data.update(extra)
     return data
 
@@ -70,8 +115,18 @@ def new_post():
         errors = []
         if len(title) < 3:
             errors.append("Заголовок должен содержать минимум 3 символа.")
+        if len(title) > MAX_TITLE:
+            errors.append(f"Заголовок слишком длинный — максимум {MAX_TITLE} символов.")
         if len(body) < 10:
             errors.append("Текст публикации слишком короткий — напишите хотя бы пару предложений.")
+        if len(body) > MAX_BODY:
+            errors.append(f"Текст слишком длинный — максимум {MAX_BODY} символов.")
+        if len(author) > MAX_AUTHOR:
+            errors.append(f"Имя автора слишком длинное — максимум {MAX_AUTHOR} символов.")
+        if len(summary) > MAX_SUMMARY:
+            errors.append(f"Описание слишком длинное — максимум {MAX_SUMMARY} символов.")
+        if len(tags) > MAX_TAGS:
+            errors.append(f"Список тем слишком длинный — максимум {MAX_TAGS} символов.")
 
         if errors:
             for message in errors:
@@ -102,6 +157,10 @@ def add_comment(post_id):
     author = request.form.get("author", "").strip() or "Гость"
     if len(body) < 2:
         flash("Комментарий не может быть пустым.", "error")
+    elif len(body) > MAX_COMMENT:
+        flash(f"Комментарий слишком длинный — максимум {MAX_COMMENT} символов.", "error")
+    elif len(author) > MAX_AUTHOR:
+        flash(f"Имя слишком длинное — максимум {MAX_AUTHOR} символов.", "error")
     else:
         db.add_comment(post_id, body, author)
         flash("Спасибо за отклик!", "success")
@@ -112,7 +171,13 @@ def add_comment(post_id):
 def react(post_id, kind):
     if db.get_post(post_id) is None:
         abort(404)
-    if db.add_reaction(post_id, kind):
+    # Ограничение на число реакций от одного посетителя: иначе счётчик
+    # накручивается одним скриптом. Считаем по сессии.
+    used = session.get("reactions", 0)
+    if used >= MAX_REACTIONS_IN_SESSION:
+        flash("Вы поставили много реакций за эту сессию. Отдохните немного.", "error")
+    elif db.add_reaction(post_id, kind):
+        session["reactions"] = used + 1
         flash("Ваша реакция учтена.", "success")
     return redirect(url_for("blog.post", post_id=post_id) + "#reactions")
 
@@ -189,11 +254,12 @@ def _rfc822(value):
 
 @bp.route("/feed.xml")
 def rss():
-    base = request.url_root.rstrip("/")
+    # _external=True: абсолютные адреса собираются с учётом SCRIPT_NAME,
+    # поэтому лента работает и в корне домена, и в подкаталоге (/logos/).
     posts = db.list_posts()[:20]
     items = []
     for p in posts:
-        link = f"{base}{url_for('blog.post', post_id=p['id'])}"
+        link = url_for("blog.post", post_id=p["id"], _external=True)
         items.append(
             "<item>"
             f"<title>{escape(p['title'])}</title>"
@@ -204,16 +270,18 @@ def rss():
             f"<description>{escape(p['summary'] or p['body'][:200])}</description>"
             "</item>"
         )
+    base = url_for("blog.index", _external=True).rstrip("/")
     # stylesheet: в браузере лента выглядит как страница,
     # RSS-читалки получают обычный XML.
     xml = (
         '<?xml version="1.0" encoding="UTF-8"?>'
-        '<?xml-stylesheet type="text/xsl" href="/feed.xsl"?>'
+        f'<?xml-stylesheet type="text/xsl" href="{url_for("blog.rss_stylesheet")}"?>'
         '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">'
         "<channel>"
         "<title>Логос</title>"
         f"<link>{escape(base)}</link>"
-        f'<atom:link href="{escape(base)}/feed.xml" rel="self" type="application/rss+xml"/>'
+        f'<atom:link href="{escape(url_for("blog.rss", _external=True))}"'
+        ' rel="self" type="application/rss+xml"/>'
         "<description>Блог, чтобы делиться мыслями и публикациями.</description>"
         "<language>ru</language>"
         + "".join(items) +
@@ -231,3 +299,36 @@ def rss_stylesheet():
         render_template("feed.xsl"),
         mimetype="application/xml",
     )
+
+
+@bp.route("/robots.txt")
+def robots():
+    """Подсказка поисковикам: служебные страницы индексировать не нужно."""
+    sitemap_url = url_for("blog.sitemap", _external=True)
+    body = (
+        "User-agent: *\n"
+        "Disallow: /new\n"
+        "Disallow: /random\n"
+        "Disallow: /api/\n"
+        "Disallow: /feed.xsl\n"
+        f"\nSitemap: {sitemap_url}\n"
+    )
+    return Response(body, mimetype="text/plain")
+
+
+@bp.route("/sitemap.xml")
+def sitemap():
+    urls = [
+        url_for("blog.index", _external=True),
+        url_for("blog.about", _external=True),
+        url_for("blog.authors", _external=True),
+    ]
+    for p in db.list_posts():
+        urls.append(url_for("blog.post", post_id=p["id"], _external=True))
+    body = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        + "".join(f"<url><loc>{escape(u)}</loc></url>" for u in urls)
+        + "</urlset>"
+    )
+    return Response(body, mimetype="application/xml")

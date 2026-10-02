@@ -1,22 +1,36 @@
 """Фабрика приложения блога «Логос»."""
 
 import os
+import secrets
 from datetime import datetime, timezone
 
-from flask import Flask, render_template
+from flask import Flask, g, render_template
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import db
+
+DEFAULT_SECRET = "logos-dev-secret"
 
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
-        SECRET_KEY=os.environ.get("SECRET_KEY", "logos-dev-secret"),
+        SECRET_KEY=os.environ.get("SECRET_KEY", DEFAULT_SECRET),
         DATABASE=os.path.join(app.instance_path, "logos.sqlite3"),
     )
     if test_config:
         app.config.update(test_config)
+
+    # С ключом по умолчанию сессию можно подделать. Для разработки это
+    # допустимо, но на живом сайте ключ обязательно задаётся переменной
+    # окружения; иначе генерируем случайный при каждом запуске.
+    if not test_config and app.config["SECRET_KEY"] == DEFAULT_SECRET:
+        if os.environ.get("FLASK_ENV") == "production" or os.environ.get("LOGOS_ENV") == "production":
+            raise RuntimeError(
+                "Задайте SECRET_KEY в переменных окружения: со стандартным "
+                "ключом сессии можно подделать."
+            )
+        app.config["SECRET_KEY"] = secrets.token_hex(32)
 
     # Сайт работает за прокси платформы: без этого Flask считает схему
     # http, и ссылки в RSS уходили бы по http вместо https.
@@ -37,6 +51,43 @@ def create_app(test_config=None):
     @app.errorhandler(404)
     def not_found(error):
         return render_template("404.html"), 404
+
+    @app.before_request
+    def make_csp_nonce():
+        # Свой одноразовый номер на каждый запрос: он разрешает именно
+        # встроенный скрипт темы и ничего больше.
+        g.csp_nonce = secrets.token_urlsafe(16)
+
+    @app.after_request
+    def security_headers(response):
+        """Базовые заголовки безопасности.
+
+        CSP разрешает только свои скрипты (и встроенный скрипт темы по
+        одноразовому номеру), свои стили, шрифты Google и картинки из
+        data: и https:. Без этого внедрённый скрипт выполнился бы в
+        браузере читателя.
+        """
+        nonce = getattr(g, "csp_nonce", None)
+        script_src = f"'nonce-{nonce}'" if nonce else "'self'"
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'; "
+            "img-src 'self' data: https:; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            f"script-src 'self' {script_src}; "
+            "form-action 'self'; "
+            "base-uri 'self'; "
+            "frame-ancestors 'self'",
+        )
+        return response
+
+    @app.context_processor
+    def inject_csp_nonce():
+        return {"csp_nonce": getattr(g, "csp_nonce", "")}
 
     return app
 

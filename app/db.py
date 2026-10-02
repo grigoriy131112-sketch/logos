@@ -223,14 +223,16 @@ def all_tags():
     return sorted(counts.items(), key=lambda item: (-item[1], item[0]))
 
 
-def stats():
+def stats(tag_count=None):
     db = get_db()
     posts = db.execute("SELECT COUNT(*) AS n FROM posts").fetchone()["n"]
     comments = db.execute("SELECT COUNT(*) AS n FROM comments").fetchone()["n"]
     reactions = db.execute("SELECT COUNT(*) AS n FROM reactions").fetchone()["n"]
+    if tag_count is None:
+        tag_count = len(all_tags())
     return {
         "posts": posts,
         "comments": comments,
         "reactions": reactions,
-        "tags": len(all_tags()),
+        "tags": tag_count,
     }

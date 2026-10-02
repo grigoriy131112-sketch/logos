@@ -11,7 +11,14 @@
   <link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
-  <script>
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+  <meta property="og:site_name" content="Логос">
+  <meta property="og:title" content="{% block og_title %}Логос — блог{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}Логос — место, где делятся мыслями и публикациями.{% endblock %}">
+  <meta property="og:url" content="{{ request.url }}">
+  <meta name="twitter:card" content="summary">
+  <link rel="canonical" href="{{ request.url }}">
+  <script nonce="{{ csp_nonce }}">
     // Тема применяется до отрисовки, чтобы не было мигания.
     (function () {
       try {
