@@ -1,8 +1,10 @@
 """Маршруты блога «Логос»."""
 
+from xml.sax.saxutils import escape
+
 import markdown
 from flask import (
-    Blueprint, abort, flash, jsonify, redirect, render_template,
+    Blueprint, Response, abort, flash, jsonify, redirect, render_template,
     request, url_for,
 )
 
@@ -18,6 +20,12 @@ def render_markdown(text):
     return MD.convert(text or "")
 
 
+def _context(**extra):
+    data = {"tags": db.all_tags(), "stats": db.stats()}
+    data.update(extra)
+    return data
+
+
 @bp.route("/")
 def index():
     tag = request.args.get("tag", "").strip()
@@ -28,8 +36,7 @@ def index():
         posts=posts,
         active_tag=tag,
         query=query,
-        tags=db.all_tags(),
-        stats=db.stats(),
+        **_context(),
     )
 
 
@@ -43,7 +50,10 @@ def post(post_id):
         post=item,
         body_html=render_markdown(item["body"]),
         comments=db.list_comments(post_id),
-        tags=db.all_tags(),
+        reactions=db.reaction_counts(post_id),
+        reactions_def=db.REACTIONS,
+        reading_time=db.reading_time(item["body"]),
+        **_context(),
     )
 
 
@@ -69,7 +79,7 @@ def new_post():
                 "new_post.html",
                 form={"title": title, "body": body, "author": author,
                       "tags": tags, "summary": summary},
-                tags=db.all_tags(),
+                **_context(),
             )
 
         post_id = db.create_post(title, body, author, tags, summary)
@@ -79,7 +89,7 @@ def new_post():
     return render_template(
         "new_post.html",
         form={"title": "", "body": "", "author": "", "tags": "", "summary": ""},
-        tags=db.all_tags(),
+        **_context(),
     )
 
 
@@ -97,9 +107,50 @@ def add_comment(post_id):
     return redirect(url_for("blog.post", post_id=post_id) + "#comments")
 
 
+@bp.route("/post/<int:post_id>/react/<kind>", methods=("POST",))
+def react(post_id, kind):
+    if db.get_post(post_id) is None:
+        abort(404)
+    if db.add_reaction(post_id, kind):
+        flash("Ваша реакция учтена.", "success")
+    return redirect(url_for("blog.post", post_id=post_id) + "#reactions")
+
+
+@bp.route("/random")
+def random_thought():
+    """Случайная мысль — открыть случайную публикацию."""
+    item = db.random_post()
+    if item is None:
+        flash("Пока нечем поделиться — добавьте первую публикацию.", "error")
+        return redirect(url_for("blog.index"))
+    return redirect(url_for("blog.post", post_id=item["id"]))
+
+
+@bp.route("/author/<path:name>")
+def author(name):
+    posts = db.list_posts_by_author(name)
+    if not posts:
+        abort(404)
+    return render_template(
+        "author.html",
+        author_name=posts[0]["author"],
+        posts=posts,
+        **_context(),
+    )
+
+
+@bp.route("/authors")
+def authors():
+    return render_template(
+        "authors.html",
+        authors=db.list_authors(),
+        **_context(),
+    )
+
+
 @bp.route("/about")
 def about():
-    return render_template("about.html", tags=db.all_tags(), stats=db.stats())
+    return render_template("about.html", **_context())
 
 
 @bp.route("/api/posts")
@@ -117,6 +168,36 @@ def api_posts():
             "summary": p["summary"],
             "created_at": p["created_at"],
             "comments": db.comment_count(p["id"]),
+            "reactions": db.reaction_total(p["id"]),
+            "reading_time": db.reading_time(p["body"]),
         }
         for p in posts
     ])
+
+
+@bp.route("/feed.xml")
+def rss():
+    base = request.url_root.rstrip("/")
+    posts = db.list_posts()[:20]
+    items = []
+    for p in posts:
+        link = f"{base}{url_for('blog.post', post_id=p['id'])}"
+        items.append(
+            "<item>"
+            f"<title>{escape(p['title'])}</title>"
+            f"<link>{escape(link)}</link>"
+            f"<guid>{escape(link)}</guid>"
+            f"<pubDate>{escape(p['created_at'])}</pubDate>"
+            f"<description>{escape(p['summary'] or p['body'][:200])}</description>"
+            "</item>"
+        )
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<rss version="2.0"><channel>'
+        f"<title>Логос</title>"
+        f"<link>{escape(base)}</link>"
+        "<description>Блог, чтобы делиться мыслями и публикациями.</description>"
+        + "".join(items) +
+        "</channel></rss>"
+    )
+    return Response(xml, mimetype="application/rss+xml")

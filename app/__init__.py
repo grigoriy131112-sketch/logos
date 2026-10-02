@@ -55,3 +55,11 @@ def _register_filters(app):
     @app.template_filter("tags_list")
     def tags_list(value):
         return db.parse_tags(value)
+
+    @app.template_filter("reading_time")
+    def reading_time(value):
+        return db.reading_time(value)
+
+    @app.template_filter("comments_count")
+    def comments_count(post_id):
+        return db.comment_count(post_id)

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Авторы — Логос{% endblock %}
+
+{% block content %}
+<section class="about">
+  <a class="back" href="{{ url_for('blog.index') }}">← В ленту</a>
+  <p class="eyebrow">Сообщество</p>
+  <h1>Авторы «Логоса»</h1>
+  <p class="lede">Голоса, которые делятся мыслями и публикациями.</p>
+
+  {% if authors %}
+    <ul class="author-grid">
+      {% for name, count in authors %}
+        <li class="author-card">
+          <a href="{{ url_for('blog.author', name=name) }}">
+            <span class="author-avatar">{{ name[0] | upper }}</span>
+            <span class="author-name">{{ name }}</span>
+            <span class="author-count">{{ count }} публикаций</span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">Авторы появятся вместе с первыми публикациями.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -11,11 +11,13 @@
   </p>
   <div class="hero-actions">
     <a class="btn btn-primary" href="{{ url_for('blog.new_post') }}">Поделиться мыслью</a>
+    <a class="btn btn-ghost" href="{{ url_for('blog.random_thought') }}">🎲 Случайная мысль</a>
     <a class="btn btn-ghost" href="{{ url_for('blog.about') }}">Что такое «Логос»</a>
   </div>
   <dl class="stats">
     <div><dt>{{ stats.posts }}</dt><dd>публикаций</dd></div>
     <div><dt>{{ stats.comments }}</dt><dd>откликов</dd></div>
+    <div><dt>{{ stats.reactions }}</dt><dd>реакций</dd></div>
     <div><dt>{{ stats.tags }}</dt><dd>тем</dd></div>
   </dl>
 </section>
@@ -28,11 +30,15 @@
         {% elif query %}Поиск: «{{ query }}»
         {% else %}Свежие публикации{% endif %}
       </h2>
-      <form class="search" action="{{ url_for('blog.index') }}" method="get">
+      <form class="search" action="{{ url_for('blog.index') }}" method="get" role="search">
         <input type="search" name="q" value="{{ query }}" placeholder="Найти в публикациях…" aria-label="Поиск">
         <button class="btn btn-ghost" type="submit">Искать</button>
       </form>
     </div>
+
+    {% if query and posts %}
+      <p class="result-note">Найдено публикаций: {{ posts | length }}</p>
+    {% endif %}
 
     {% if posts %}
       <ul class="post-list">
@@ -45,11 +51,13 @@
               <p class="post-summary">{{ post['summary'] }}</p>
             {% endif %}
             <div class="post-meta">
-              <span class="author">{{ post['author'] }}</span>
+              <a class="author" href="{{ url_for('blog.author', name=post['author']) }}">{{ post['author'] }}</a>
               <span class="dot">·</span>
               <time datetime="{{ post['created_at'] }}">{{ post['created_at'] | ru_date }}</time>
               <span class="dot">·</span>
-              <span>{{ post['tags'] | tags_list | length }} тем(ы)</span>
+              <span>⏱ {{ post['body'] | reading_time }} мин</span>
+              <span class="dot">·</span>
+              <span>💬 {{ post['id'] | comments_count }}</span>
             </div>
             {% if post['tags'] | tags_list %}
               <div class="tag-row">
@@ -63,7 +71,11 @@
       </ul>
     {% else %}
       <div class="empty">
-        <p>Здесь пока пусто. Станьте первым, кто поделится мыслью.</p>
+        {% if query %}
+          <p>По запросу «{{ query }}» ничего не найдено. Попробуйте другие слова.</p>
+        {% else %}
+          <p>Здесь пока пусто. Станьте первым, кто поделится мыслью.</p>
+        {% endif %}
         <a class="btn btn-primary" href="{{ url_for('blog.new_post') }}">Написать публикацию</a>
       </div>
     {% endif %}

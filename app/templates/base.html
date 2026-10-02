@@ -1,17 +1,30 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Логос — блог{% endblock %}</title>
   <meta name="description" content="Логос — место, где делятся мыслями и публикациями.">
+  <link rel="alternate" type="application/rss+xml" title="Логос — RSS" href="{{ url_for('blog.rss') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
+  <script>
+    // Тема применяется до отрисовки, чтобы не было мигания.
+    (function () {
+      try {
+        var saved = localStorage.getItem("logos-theme");
+        var theme = saved || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
+  <div class="reading-progress" id="reading-progress" aria-hidden="true"></div>
+
   <header class="site-header">
     <div class="wrap header-inner">
       <a class="brand" href="{{ url_for('blog.index') }}">
@@ -23,7 +36,12 @@
       </a>
       <nav class="nav">
         <a href="{{ url_for('blog.index') }}">Лента</a>
+        <a href="{{ url_for('blog.authors') }}">Авторы</a>
         <a href="{{ url_for('blog.about') }}">О блоге</a>
+        <a class="icon-link" href="{{ url_for('blog.rss') }}" title="RSS-лента" aria-label="RSS">RSS</a>
+        <button class="theme-toggle" id="theme-toggle" type="button" title="Переключить тему" aria-label="Переключить тему">
+          <span class="theme-icon" aria-hidden="true">🌙</span>
+        </button>
         <a class="btn btn-primary" href="{{ url_for('blog.new_post') }}">Написать</a>
       </nav>
     </div>
@@ -45,7 +63,7 @@
 
   <footer class="site-footer">
     <div class="wrap footer-inner">
-      <p>© {{ 2026 }} «Логос» — блог о мыслях и публикациях.</p>
+      <p>© 2026 «Логос» — блог о мыслях и публикациях.</p>
       <p class="muted">Слово. Смысл. Отклик.</p>
     </div>
   </footer>

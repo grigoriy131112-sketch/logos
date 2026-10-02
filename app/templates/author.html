@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ author_name }} — Логос{% endblock %}
+
+{% block content %}
+<section class="about">
+  <a class="back" href="{{ url_for('blog.authors') }}">← Все авторы</a>
+  <p class="eyebrow">Автор</p>
+  <h1>{{ author_name }}</h1>
+  <p class="lede">Публикаций: {{ posts | length }}.</p>
+
+  <ul class="post-list">
+    {% for post in posts %}
+      <li class="post-card">
+        <a class="post-link" href="{{ url_for('blog.post', post_id=post['id']) }}">
+          <h3>{{ post['title'] }}</h3>
+        </a>
+        {% if post['summary'] %}
+          <p class="post-summary">{{ post['summary'] }}</p>
+        {% endif %}
+        <div class="post-meta">
+          <time datetime="{{ post['created_at'] }}">{{ post['created_at'] | ru_date }}</time>
+          <span class="dot">·</span>
+          <span>⏱ {{ post['body'] | reading_time }} мин</span>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}
