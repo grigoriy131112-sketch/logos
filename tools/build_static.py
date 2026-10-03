@@ -133,7 +133,7 @@ def fix_links(html, random_posts, page_url):
             base, anchor = href.split("#", 1)
             anchor = "#" + anchor
         if base in (f"{PREFIX}/authors", f"{PREFIX}/about", f"{PREFIX}/new",
-                    f"{PREFIX}/workshop", f"{PREFIX}/brief"):
+                    f"{PREFIX}/workshop"):
             return f'href="{base}/{anchor}"'
         return match.group(0)
 
@@ -177,8 +177,7 @@ def canonical_urls(xml):
 def build_sitemap():
     """Карта сайта: все публичные страницы, адреса со слешем на конце."""
     urls = [f"{HOST}{PREFIX}/", f"{HOST}{PREFIX}/about/",
-            f"{HOST}{PREFIX}/brief/", f"{HOST}{PREFIX}/authors/",
-            f"{HOST}{PREFIX}/workshop/"]
+            f"{HOST}{PREFIX}/authors/", f"{HOST}{PREFIX}/workshop/"]
     for post in posts:
         urls.append(f"{HOST}{PREFIX}/post/{post['id']}/")
     for tag in tag_names:
@@ -276,11 +275,11 @@ for name in author_names:
                     f"{HOST}{PREFIX}/author/{author_slugs[name]}/"))
 print(f"  author/ — {len(author_names)}")
 
-for page in ("authors", "about", "workshop", "brief"):
+for page in ("authors", "about", "workshop"):
     write(f"{page}/index.html",
           fix_links(strip_server_forms(render(f"/{page}")), post_urls,
                     f"{HOST}{PREFIX}/{page}/"))
-print("  authors/, about/, workshop/, brief/")
+print("  authors/, about/, workshop/")
 
 # Страница записи живёт в мастерской. В статике /new раньше показывал
 # только витрину формы — тупик, если открыть его напрямую. Вместо этого
