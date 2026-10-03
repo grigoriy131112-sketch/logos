@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /new
+Disallow: /random
+Disallow: /api/
+Disallow: /feed.xsl
+
+Sitemap: https://grigoriy131112-sketch.github.io/logos/sitemap.xml

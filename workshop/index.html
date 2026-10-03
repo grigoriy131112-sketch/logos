@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+
+<html data-theme="light" lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Мастерская — Логос</title>
+<meta content="Логос — место, где делятся мыслями и публикациями." name="description"/>
+<link href="/logos/feed.xml" rel="alternate" title="Логос — RSS" type="application/rss+xml"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="/logos/static/css/style.css" rel="stylesheet"/>
+<link href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;📖&lt;/text&gt;&lt;/svg&gt;" rel="icon"/>
+<meta content="website" property="og:type"/>
+<meta content="Логос" property="og:site_name"/>
+<meta content="Логос — блог" property="og:title"/>
+<meta content="Логос — место, где делятся мыслями и публикациями." property="og:description"/>
+<meta content="https://grigoriy131112-sketch.github.io/logos/workshop/" property="og:url"/>
+<meta content="summary" name="twitter:card"/>
+<link href="https://grigoriy131112-sketch.github.io/logos/workshop/" rel="canonical"/>
+<script nonce="g-kfhjGBRDJKM6FwBEtPUw">
+    // Тема применяется до отрисовки, чтобы не было мигания.
+    (function () {
+      try {
+        var saved = localStorage.getItem("logos-theme");
+        var theme = saved || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+<div aria-hidden="true" class="reading-progress" id="reading-progress"></div>
+<header class="site-header">
+<div class="wrap header-inner">
+<a class="brand" href="/logos/">
+<span class="brand-mark">Λ</span>
+<span class="brand-text">
+<strong>Логос</strong>
+<small>делиться мыслями и публикациями</small>
+</span>
+</a>
+<nav class="nav">
+<a href="/logos/">Лента</a>
+<a href="/logos/workshop/">Мастерская</a>
+<a href="/logos/authors/">Авторы</a>
+<a href="/logos/about/">О блоге</a>
+<a aria-label="RSS" class="icon-link" href="/logos/feed.xml" title="RSS-лента">RSS</a>
+<button aria-label="Переключить тему" class="theme-toggle" id="theme-toggle" title="Переключить тему" type="button">
+<span aria-hidden="true" class="theme-icon">🌙</span>
+</button>
+<a class="btn btn-primary" href="/logos/workshop/#new">Написать</a>
+</nav>
+</div>
+</header>
+<main class="wrap">
+<section class="workshop" data-can-publish="false" data-publish-url="/logos/new" id="workshop">
+<p class="eyebrow">Личное</p>
+<h1>Моя мастерская</h1>
+<p class="lede">
+    Здесь ваши мысли: псевдоним, тексты и правки. Регистрация не нужна —
+    профиль живёт в этом браузере и никуда не отправляется.
+  </p>
+<noscript>
+<p class="flash flash-error">
+      Для мастерской нужен JavaScript: тексты хранятся в браузере.
+    </p>
+</noscript>
+<div class="panel ws-setup" hidden="" id="ws-setup">
+<h2>Придумайте псевдоним</h2>
+<p class="muted">По нему вас увидят читатели. Настоящее имя не нужно.</p>
+<form class="ws-form" id="ws-setup-form">
+<label>
+<span>Псевдоним</span>
+<input maxlength="60" name="nick" placeholder="Например: Ночной читатель" required="" type="text"/>
+</label>
+<label>
+<span>Пара слов о себе <em class="muted">(необязательно)</em></span>
+<input maxlength="120" name="about" placeholder="О чём вы пишете" type="text"/>
+</label>
+<button class="btn btn-primary" type="submit">Создать профиль</button>
+</form>
+</div>
+<div class="panel ws-profile" hidden="" id="ws-profile">
+<div class="ws-head">
+<div class="ws-identity">
+<span class="author-avatar" id="ws-avatar">?</span>
+<div>
+<div class="ws-nick" id="ws-nick"></div>
+<div class="muted" id="ws-about"></div>
+</div>
+</div>
+<button class="btn btn-ghost" id="ws-edit-profile" type="button">Изменить профиль</button>
+</div>
+<dl class="stats ws-stats">
+<div><dt id="ws-stat-posts">0</dt><dd>мыслей</dd></div>
+<div><dt id="ws-stat-tags">0</dt><dd>тем</dd></div>
+<div><dt id="ws-stat-min">0</dt><dd>минут чтения</dd></div>
+</dl>
+<form class="ws-form" hidden="" id="ws-profile-form">
+<label><span>Псевдоним</span>
+<input maxlength="60" name="nick" required="" type="text"/></label>
+<label><span>О себе</span>
+<input maxlength="120" name="about" type="text"/></label>
+<div class="ws-actions">
+<button class="btn btn-primary" type="submit">Сохранить</button>
+<button class="btn btn-ghost" id="ws-profile-cancel" type="button">Отмена</button>
+</div>
+</form>
+<div class="ws-actions">
+<button class="btn btn-primary" id="ws-new" type="button">Написать мысль</button>
+<button class="btn btn-ghost" id="ws-export" type="button">Сохранить копию</button>
+<label class="btn btn-ghost ws-import">
+        Загрузить копию
+        <input accept="application/json,.json" hidden="" id="ws-import" type="file"/>
+</label>
+</div>
+</div>
+<div class="panel ws-editor" hidden="" id="ws-editor">
+<h2 id="ws-editor-title">Новая мысль</h2>
+<form class="ws-form" id="ws-form">
+<label><span>Заголовок</span>
+<input maxlength="160" minlength="3" name="title" placeholder="О чём эта мысль?" required="" type="text"/>
+</label>
+<label><span>Темы <em class="muted">(через запятую)</em></span>
+<input maxlength="200" name="tags" placeholder="философия, книги" type="text"/>
+</label>
+<label><span>Краткое описание <em class="muted">(необязательно)</em></span>
+<input maxlength="220" name="summary" placeholder="Одно предложение" type="text"/>
+</label>
+<label><span>Текст</span>
+<textarea maxlength="20000" minlength="10" name="body" placeholder="Пишите свободно. **Жирный**, *курсив*, # заголовки — всё работает." required="" rows="10"></textarea>
+</label>
+<div class="ws-actions">
+<button class="btn btn-primary" type="submit">Сохранить мысль</button>
+<button class="btn btn-ghost" id="ws-cancel" type="button">Отмена</button>
+</div>
+</form>
+</div>
+<section class="ws-thoughts">
+<div class="feed-head">
+<h2>Мои мысли</h2>
+<span class="muted" id="ws-thoughts-count"></span>
+</div>
+<ul class="post-list" id="ws-list"></ul>
+<p class="empty" hidden="" id="ws-empty">Пока ни одной мысли. Начните с первой.</p>
+</section>
+<p class="muted ws-note">
+    Мысли хранятся в этом браузере: их видите только вы. Кнопка «Сохранить
+    копию» выгружает их в файл — так текст не потеряется при очистке данных
+    браузера или переустановке системы.
+  </p>
+</section>
+</main>
+<footer class="site-footer">
+<div class="wrap footer-inner">
+<p>© 2026 «Логос» — блог о мыслях и публикациях.</p>
+<p class="muted">Слово. Смысл. Отклик.</p>
+</div>
+</footer>
+<script src="/logos/static/js/app.js"></script>
+<script src="/logos/static/js/workshop.js"></script>
+<script src="/logos/static/js/giscus.js"></script>
+  <script src="/logos/static/js/static.js"></script>
+</body>
+</html>
