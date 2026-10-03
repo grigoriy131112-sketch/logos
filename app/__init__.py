@@ -13,13 +13,12 @@ DEFAULT_SECRET = "logos-dev-secret"
 
 # Настройки Giscus: обсуждения живут в GitHub Discussions репозитория «Логос».
 # repo_id и category_id — публичные идентификаторы, они видны на самой
-# странице и не являются секретом. Пока Discussions не включены, блок на
-# сайте не показывается: иначе Giscus выведет своё сообщение об ошибке.
+# странице и не являются секретом.
 GISCUS = {
     "repo": "grigoriy131112-sketch/logos",
     "repo_id": "R_kgDOU4kzsQ",
     "category": "Отклики",
-    "category_id": "",
+    "category_id": "DIC_kwDOU4kzsc4DG75p",
 }
 
 

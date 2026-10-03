@@ -5,6 +5,7 @@ import re
 import tempfile
 
 from app import GISCUS, create_app
+from app import db
 
 SIDEBAR = ("Темы", "О чём писать")
 
@@ -56,7 +57,12 @@ def run():
     r = client.post(f"/post/{post_id}/comment", data={
         "author": "Читатель", "body": "Хороший текст!",
     }, follow_redirects=True)
-    check("Добавление комментария", "Хороший текст!".encode() in r.data)
+    check("Добавление комментария", r.status_code == 200)
+    # На странице отклики теперь показывает Giscus, поэтому текст отклика
+    # проверяем в базе, а не в HTML.
+    with app.app_context():
+        saved = [c["body"] for c in db.list_comments(post_id)]
+    check("Комментарий сохранён", "Хороший текст!" in saved)
 
     r = client.post(f"/post/{post_id}/react/insight", follow_redirects=True)
     check("Реакция", r.status_code == 200 and "💡".encode() in r.data)
@@ -89,25 +95,28 @@ def run():
           "/new" not in smap)
     check("404 для несуществующего поста", client.get("/post/9999").status_code == 404)
 
-    # Отклики: пока категория GitHub Discussions не настроена, работает
-    # встроенная форма. С настроенной категорией её место занимает Giscus,
-    # и тогда отклик виден всем читателям, а не только автору записи.
+    # Отклики: с настроенной категорией GitHub Discussions работает Giscus —
+    # отклик виден всем читателям, а не только автору записи. Без категории
+    # остаётся встроенная форма, чтобы страница не теряла возможность отклика.
     r = client.get(f"/post/{post_id}")
-    check("Отклики: встроенная форма без настроек Giscus",
-          b'class="comment-form"' in r.data and b'class="giscus"' not in r.data)
-
-    app.config["GISCUS"] = {**GISCUS, "category_id": "DIC_kwDOU4kzsc4C"}
-    r = client.get(f"/post/{post_id}")
-    check("Отклики: Giscus заменяет форму",
+    check("Отклики: Giscus на странице публикации",
           b'class="giscus"' in r.data and b'class="comment-form"' not in r.data)
     check("Отклики: обсуждение привязано к публикации",
           b'data-term="logos-post-%d"' % post_id in r.data)
-    check("Отклики: настройки Giscus не секретны, но пустыми не бывают",
-          b"data-repo-id=" in r.data and b"data-category-id=" in r.data)
+    check("Отклики: категория задана",
+          b"data-repo-id=\"R_kgDOU4kzsQ\"" in r.data
+          and b'data-category-id="DIC_kwDOU4kzsc4DG75p"' in r.data)
+    check("Отклики: окно грузится скриптом, а не сервером",
+          b"giscus.js" in r.data)
 
     csp = r.headers.get("Content-Security-Policy", "")
     check("CSP: скрипт и окно Giscus разрешены",
           "https://giscus.app" in csp and "frame-src https://giscus.app" in csp)
+
+    app.config["GISCUS"] = {**GISCUS, "category_id": ""}
+    r = client.get(f"/post/{post_id}")
+    check("Отклики: без категории возвращается встроенная форма",
+          b'class="comment-form"' in r.data and b'class="giscus"' not in r.data)
     app.config["GISCUS"] = GISCUS
 
     # Мастерская: профиль и свои мысли хранятся в браузере, серверу здесь

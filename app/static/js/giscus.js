@@ -28,8 +28,16 @@
   });
 
   // Смена темы на сайте должна перекрашивать и окно откликов, иначе светлая
-  // форма остаётся на тёмной странице.
-  const applyTheme = () => script.setAttribute("data-theme", theme());
+  // форма остаётся на тёмной странице. Тег скрипта Giscus после загрузки
+  // убирает из DOM, поэтому смена `data-theme` у него ничего не даёт —
+  // тему окна меняем сообщением внутрь него.
+  const applyTheme = () => {
+    script.setAttribute("data-theme", theme());
+    const frame = document.querySelector("iframe.giscus-frame");
+    frame?.contentWindow?.postMessage(
+      { giscus: { setConfig: { theme: theme() } } },
+      "https://giscus.app");
+  };
   applyTheme();
   box.appendChild(script);
 
