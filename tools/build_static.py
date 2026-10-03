@@ -212,7 +212,8 @@ def strip_server_forms(html):
     if comment_form:
         note = soup.new_tag("p")
         note["class"] = "muted static-note"
-        note.string = "Отклик можно оставить в версии блога с админкой."
+        note.string = ("Отклики подключаются к обсуждению в GitHub — "
+                       "форма появится после настройки Discussions.")
         comment_form.replace_with(note)
 
     editor = soup.select_one(".editor-form")

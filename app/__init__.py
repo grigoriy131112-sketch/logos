@@ -11,6 +11,17 @@ from . import db
 
 DEFAULT_SECRET = "logos-dev-secret"
 
+# Настройки Giscus: обсуждения живут в GitHub Discussions репозитория «Логос».
+# repo_id и category_id — публичные идентификаторы, они видны на самой
+# странице и не являются секретом. Пока Discussions не включены, блок на
+# сайте не показывается: иначе Giscus выведет своё сообщение об ошибке.
+GISCUS = {
+    "repo": "grigoriy131112-sketch/logos",
+    "repo_id": "R_kgDOU4kzsQ",
+    "category": "Отклики",
+    "category_id": "",
+}
+
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
@@ -65,7 +76,8 @@ def create_app(test_config=None):
         CSP разрешает только свои скрипты (и встроенный скрипт темы по
         одноразовому номеру), свои стили, шрифты Google и картинки из
         data: и https:. Без этого внедрённый скрипт выполнился бы в
-        браузере читателя.
+        браузере читателя. Giscus — единственное внешнее исключение:
+        его скрипт и окно с обсуждением живут на giscus.app.
         """
         nonce = getattr(g, "csp_nonce", None)
         script_src = f"'nonce-{nonce}'" if nonce else "'self'"
@@ -78,7 +90,8 @@ def create_app(test_config=None):
             "img-src 'self' data: https:; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "font-src 'self' https://fonts.gstatic.com; "
-            f"script-src 'self' {script_src}; "
+            f"script-src 'self' {script_src} https://giscus.app; "
+            "frame-src https://giscus.app; "
             "form-action 'self'; "
             "base-uri 'self'; "
             "frame-ancestors 'self'",
@@ -88,6 +101,15 @@ def create_app(test_config=None):
     @app.context_processor
     def inject_csp_nonce():
         return {"csp_nonce": getattr(g, "csp_nonce", "")}
+
+    @app.context_processor
+    def inject_giscus():
+        """Настройки Giscus для страницы публикации.
+
+        Пока не задан category_id, шаблон не выводит блок: Discussions ещё
+        не включены, и Giscus показал бы ошибку вместо формы.
+        """
+        return {"giscus": app.config.get("GISCUS", GISCUS)}
 
     return app
 

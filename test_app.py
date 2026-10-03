@@ -4,7 +4,7 @@ import os
 import re
 import tempfile
 
-from app import create_app
+from app import GISCUS, create_app
 
 SIDEBAR = ("Темы", "О чём писать")
 
@@ -88,6 +88,27 @@ def run():
     check("Карта сайта: служебная страница записи не попала",
           "/new" not in smap)
     check("404 для несуществующего поста", client.get("/post/9999").status_code == 404)
+
+    # Отклики: пока категория GitHub Discussions не настроена, работает
+    # встроенная форма. С настроенной категорией её место занимает Giscus,
+    # и тогда отклик виден всем читателям, а не только автору записи.
+    r = client.get(f"/post/{post_id}")
+    check("Отклики: встроенная форма без настроек Giscus",
+          b'class="comment-form"' in r.data and b'class="giscus"' not in r.data)
+
+    app.config["GISCUS"] = {**GISCUS, "category_id": "DIC_kwDOU4kzsc4C"}
+    r = client.get(f"/post/{post_id}")
+    check("Отклики: Giscus заменяет форму",
+          b'class="giscus"' in r.data and b'class="comment-form"' not in r.data)
+    check("Отклики: обсуждение привязано к публикации",
+          b'data-term="logos-post-%d"' % post_id in r.data)
+    check("Отклики: настройки Giscus не секретны, но пустыми не бывают",
+          b"data-repo-id=" in r.data and b"data-category-id=" in r.data)
+
+    csp = r.headers.get("Content-Security-Policy", "")
+    check("CSP: скрипт и окно Giscus разрешены",
+          "https://giscus.app" in csp and "frame-src https://giscus.app" in csp)
+    app.config["GISCUS"] = GISCUS
 
     # Мастерская: профиль и свои мысли хранятся в браузере, серверу здесь
     # нужна только страница с формой.
