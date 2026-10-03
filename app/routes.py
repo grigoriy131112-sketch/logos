@@ -271,6 +271,12 @@ def about():
     return render_template("about.html", **_context())
 
 
+@bp.route("/brief")
+def brief():
+    """Бриф для заказчиков: шаблоны, которые заполняют перед работой."""
+    return render_template("brief.html", **_context())
+
+
 @bp.route("/workshop")
 def workshop():
     """Личная мастерская: профиль и свои мысли в браузере, без регистрации."""
@@ -380,6 +386,7 @@ def sitemap():
     urls = [
         url_for("blog.index", _external=True),
         url_for("blog.about", _external=True),
+        url_for("blog.brief", _external=True),
         url_for("blog.authors", _external=True),
         url_for("blog.workshop", _external=True),
     ]

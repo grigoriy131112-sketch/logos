@@ -46,6 +46,7 @@
         <a href="{{ url_for('blog.workshop') }}">Мастерская</a>
         <a href="{{ url_for('blog.authors') }}">Авторы</a>
         <a href="{{ url_for('blog.about') }}">О блоге</a>
+        <a href="{{ url_for('blog.brief') }}">Заказать сайт</a>
         <a class="icon-link" href="{{ url_for('blog.rss') }}" title="RSS-лента" aria-label="RSS">RSS</a>
         <button class="theme-toggle" id="theme-toggle" type="button" title="Переключить тему" aria-label="Переключить тему">
           <span class="theme-icon" aria-hidden="true">🌙</span>
@@ -79,5 +80,6 @@
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
   <script src="{{ url_for('static', filename='js/workshop.js') }}"></script>
   <script src="{{ url_for('static', filename='js/giscus.js') }}"></script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>
